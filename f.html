@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FLEX TRACK - 2025 Workout Tracker</title>
+    <style>
+        :root {
+            --primary: #3a86ff;
+            --primary-light: #61a0ff;
+            --secondary: #8338ec;
+            --success: #06d6a0;
+            --warning: #ffbe0b;
+            --danger: #ef476f;
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+            --gray: #6c757d;
+            --gray-light: #dee2e6;
+            --gray-dark: #343a40;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 1rem;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 1.5rem 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .logo span {
+            color: var(--warning);
+        }
+
+        .stats-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin: 1.5rem 0;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .program-section {
+            margin: 2rem 0;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+        }
+
+        .tab {
+            padding: 1rem 1.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex: 1;
+            text-align: center;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab:hover {
+            background-color: rgba(58, 134, 255, 0.05);
+        }
+
+        .tab.active {
+            border-bottom: 3px solid var(--primary);
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        .day-content {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        }
+
+        .day-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .exercise-item {
+            border-bottom: 1px solid var(--gray-light);
+            padding: 1.25rem 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .exercise-item:last-child {
+            border-bottom: none;
+        }
+
+        .exercise-info {
+            flex: 1;
+        }
+
+        .exercise-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .exercise-details {
+            font-size: 0.9rem;
+            color: var(--gray);
+        }
+
+        .exercise-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+        }
+
+        .custom-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--gray-light);
+            border-radius: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .custom-checkbox.checked {
+            background-color: var(--success);
+            border-color: var(--success);
+        }
+
+        .custom-checkbox.checked::after {
+            content: '';
+            width: 6px;
+            height: 12px;
+            border: solid white;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+            position: absolute;
+            top: 3px;
+        }
+
+        .btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            outline: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-light);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--gray-light);
+            color: var(--gray-dark);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--gray-light);
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .progress-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--gray-light);
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 0.5rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .motivation-card {
+            background: linear-gradient(135deg, #6b66f8, #4890fe);
+            color: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 2rem 0;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .motivation-icon {
+            font-size: 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+        }
+
+        .motivation-content h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .motivation-content p {
+            opacity: 0.9;
+        }
+
+        footer {
+            background-color: var(--dark);
+            color: white;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+
+        .footer-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .footer-link {
+            color: var(--gray-light);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        .footer-link:hover {
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .tabs {
+                flex-wrap: wrap;
+            }
+
+            .tab {
+                flex: 0 0 33.333%;
+            }
+
+            .exercise-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+
+            .exercise-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .footer-content {
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .footer-links {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+        }
+
+        /* Toast notification style */
+        .toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: white;
+            color: var(--dark);
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background-color: var(--success);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .toast-message {
+            font-weight: 500;
+        }
+
+        /* Streak calendar styles */
+        .calendar {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            margin-top: 1rem;
+        }
+
+        .calendar-day {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            background-color: var(--gray-light);
+            color: var(--gray-dark);
+            font-weight: 500;
+        }
+
+        .calendar-day.active {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .calendar-day.today {
+            border: 2px solid var(--primary);
+        }
+
+        /* Achievement badges */
+        .badges-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .badge {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--gray-dark);
+            position: relative;
+            opacity: 0.5;
+        }
+
+        .badge.unlocked {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            opacity: 1;
+            box-shadow: 0 4px 10px rgba(131, 56, 236, 0.3);
+        }
+
+        .badge::after {
+            content: attr(data-name);
+            position: absolute;
+            bottom: -20px;
+            font-size: 0.7rem;
+            white-space: nowrap;
+            color: var(--gray-dark);
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container header-content">
+            <div class="logo">FLEX<span>TRACK</span></div>
+            <div id="current-date"></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="completed-workouts">0</div>
+                <div class="stat-label">Workouts Completed</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="current-streak">0</div>
+                <div class="stat-label">Day Streak</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="completion-rate">0%</div>
+                <div class="stat-label">Completion Rate</div>
+            </div>
+        </div>
+
+        <div class="motivation-card">
+            <div class="motivation-icon">💪</div>
+            <div class="motivation-content">
+                <h3 id="motivation-title">Ready to crush it today?</h3>
+                <p id="motivation-text">Your future self is thanking you for showing up!</p>
+            </div>
+        </div>
+
+        <div class="program-section">
+            <div class="section-header">
+                <h2 class="section-title">Weekly Program</h2>
+                <button class="btn btn-outline" id="reset-progress-btn">Reset Progress</button>
+            </div>
+
+            <div class="tabs">
+                <div class="tab active" data-day="1">Day 1</div>
+                <div class="tab" data-day="2">Day 2</div>
+                <div class="tab" data-day="3">Day 3</div>
+                <div class="tab" data-day="4">Day 4</div>
+                <div class="tab" data-day="5">Day 5</div>
+                <div class="tab" data-day="6">Day 6</div>
+                <div class="tab" data-day="7">Day 7</div>
+            </div>
+
+            <div class="day-content active" id="day-1">
+                <h3>Upper Body Strength</h3>
+                <p>Focus: Chest, Shoulders, Triceps</p>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-1" style="width: 0%"></div>
+                </div>
+                <div class="exercise-list" id="exercise-list-1">
+                    <!-- Exercises will be loaded here by JavaScript -->
+                </div>
+            </div>
+
+            <div class="day-content" id="day-2">
+                <h3>Lower Body + Core</h3>
+                <p>Focus: Quads, Glutes, Hamstrings, Core</p>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-2" style="width: 0%"></div>
+                </div>
+                <div class="exercise-list" id="exercise-list-2">
+                    <!-- Exercises will be loaded here by JavaScript -->
+                </div>
+            </div>
+
+            <div class="day-content" id="day-3">
+                <h3>Cardio/Endurance (HIIT-style)</h3>
+                <p>Focus: Full Body + Fat Burn</p>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-3" style="width: 0%"></div>
+                </div>
+                <div class="exercise-list" id="exercise-list-3">
+                    <!-- Exercises will be loaded here by JavaScript -->
+                </div>
+            </div>
+
+            <div class="day-content" id="day-4">
+                <h3>Rest or Active Recovery</h3>
+                <p>Focus: Light Movement</p>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-4" style="width: 0%"></div>
+                </div>
+                <div class="exercise-list" id="exercise-list-4">
+                    <!-- Exercises will be loaded here by JavaScript -->
+                </div>
+            </div>
+
+            <div class="day-content" id="day-5">
+                <h3>Full Body Strength</h3>
+                <p>Focus: Total Body Strength + Core</p>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-5" style="width: 0%"></div>
+                </div>
+                <div class="exercise-list" id="exercise-list-5">
+                    <!-- Exercises will be loaded here by JavaScript -->
+                </div>
+            </div>
+
+            <div class="day-content" id="day-6">
+                <h3>Cardio or Recovery</h3>
+                <p>Focus: Light Cardio/Recovery</p>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-6" style="width: 0%"></div>
+                </div>
+                <div class="exercise-list" id="exercise-list-6">
+                    <!-- Exercises will be loaded here by JavaScript -->
+                </div>
+            </div>
+
+            <div class="day-content" id="day-7">
+                <h3>Rest</h3>
+                <p>Complete rest day to allow muscles to recover and rebuild.</p>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-7" style="width: 0%"></div>
+                </div>
+                <div class="exercise-list" id="exercise-list-7">
+                    <!-- Exercises will be loaded here by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="program-section">
+            <div class="section-header">
+                <h2 class="section-title">Your Streak</h2>
+            </div>
+            <div class="calendar" id="streak-calendar">
+                <!-- Calendar days will be added by JavaScript -->
+            </div>
+        </div>
+
+        <div class="program-section">
+            <div class="section-header">
+                <h2 class="section-title">Achievements</h2>
+            </div>
+            <div class="badges-container">
+                <div class="badge" data-name="First Workout" id="badge-first-workout">🔥</div>
+                <div class="badge" data-name="3 Day Streak" id="badge-streak-3">⚡</div>
+                <div class="badge" data-name="7 Day Streak" id="badge-streak-7">🌟</div>
+                <div class="badge" data-name="Full Week" id="badge-full-week">🏆</div>
+                <div class="badge" data-name="10 Workouts" id="badge-workouts-10">💪</div>
+                <div class="badge" data-name="Perfect Day" id="badge-perfect-day">✅</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">
+        <div class="toast-icon">✓</div>
+        <div class="toast-message">Exercise completed! Keep it up!</div>
+    </div>
+
+    <footer>
+        <div class="container footer-content">
+            <div class="footer-logo">FLEXTRACK</div>
+            <div class="footer-links">
+                <a href="#" class="footer-link">Program</a>
+                <a href="#" class="footer-link">Progress</a>
+                <a href="#" class="footer-link">Achievements</a>
+                <a href="#" class="footer-link">About</a>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Workout Program Data
+        const workoutProgram = [
+            {
+                day: 1,
+                title: "Upper Body Strength",
+                focus: "Chest, Shoulders, Triceps",
+                exercises: [
+                    {
+                        name: "Push-ups (Standard or incline)",
+                        details: "4 sets x 10–15 reps, Rest 60 seconds between sets",
+                        id: "day1-ex1"
+                    },
+                    {
+                        name: "Pike Push-ups (Shoulder-focused)",
+                        details: "3 sets x 8–12 reps, Rest 60 seconds",
+                        id: "day1-ex2"
+                    },
+                    {
+                        name: "Tricep Dips (Use a chair or bench)",
+                        details: "3 sets x 12–15 reps, Rest 60 seconds",
+                        id: "day1-ex3"
+                    },
+                    {
+                        name: "Plank Shoulder Taps",
+                        details: "3 sets x 20 taps (10 each side), Rest 45 seconds",
+                        id: "day1-ex4"
+                    },
+                    {
+                        name: "Superman Hold (Lower back)",
+                        details: "3 sets x 30 seconds, Rest 45 seconds",
+                        id: "day1-ex5"
+                    }
+                ]
+            },
+            {
+                day: 2,
+                title: "Lower Body + Core",
+                focus: "Quads, Glutes, Hamstrings, Core",
+                exercises: [
+                    {
+                        name: "Bodyweight Squats",
+                        details: "4 sets x 15–20 reps, Rest 60 seconds",
+                        id: "day2-ex1"
+                    },
+                    {
+                        name: "Bulgarian Split Squats (Each leg)",
+                        details: "3 sets x 10–12 reps, Rest 60 seconds",
+                        id: "day2-ex2"
+                    },
+                    {
+                        name: "Glute Bridges",
+                        details: "4 sets x 15–20 reps, Rest 60 seconds",
+                        id: "day2-ex3"
+                    },
+                    {
+                        name: "Lunges (Bodyweight)",
+                        details: "3 sets x 12 reps each leg, Rest 60 seconds",
+                        id: "day2-ex4"
+                    },
+                    {
+                        name: "Leg Raises",
+                        details: "3 sets x 15 reps, Rest 45 seconds",
+                        id: "day2-ex5"
+                    }
+                ]
+            },
+            {
+                day: 3,
+                title: "Cardio/Endurance (HIIT-style)",
+                focus: "Full Body + Fat Burn",
+                exercises: [
+                    {
+                        name: "Jump Squats",
+                        details: "40 sec work, 20 sec rest, repeat 3-4 rounds",
+                        id: "day3-ex1"
+                    },
+                    {
+                        name: "Push-ups",
+                        details: "40 sec work, 20 sec rest, repeat 3-4 rounds",
+                        id: "day3-ex2"
+                    },
+                    {
+                        name: "Mountain Climbers",
+                        details: "40 sec work, 20 sec rest, repeat 3-4 rounds",
+                        id: "day3-ex3"
+                    },
+                    {
+                        name: "Burpees",
+                        details: "40 sec work, 20 sec rest, repeat 3-4 rounds",
+                        id: "day3-ex4"
+                    },
+                    {
+                        name: "High Knees",
+                        details: "40 sec work, 20 sec rest, repeat 3-4 rounds",
+                        id: "day3-ex5"
+                    }
+                ]
+            },
+            {
+                day: 4,
+                title: "Rest or Active Recovery",
+                focus: "Light Movement",
+                exercises: [
+                    {
+                        name: "Walk or jog for 20–30 minutes",
+                        details: "Light cardio to aid recovery",
+                        id: "day4-ex1"
+                    },
+                    {
+                        name: "Stretch or do yoga",
+                        details: "To improve flexibility and mobility",
+                        id: "day4-ex2"
+                    }
+                ]
+            },
+            {
+                day: 5,
+                title: "Full Body Strength",
+                focus: "Total Body Strength + Core",
+                exercises: [
+                    {
+                        name: "Burpees",
+                        details: "4 sets x 10 reps, Rest 60 seconds",
+                        id: "day5-ex1"
+                    },
+                    {
+                        name: "Push-ups",
+                        details: "3 sets x 15–20 reps, Rest 60 seconds",
+                        id: "day5-ex2"
+                    },
+                    {
+                        name: "Squat to Calf Raise (Bodyweight)",
+                        details: "3 sets x 15 reps, Rest 60 seconds",
+                        id: "day5-ex3"
+                    },
+                    {
+                        name: "Plank to Push-up",
+                        details: "3 sets x 10 reps, Rest 45 seconds",
+                        id: "day5-ex4"
+                    },
+                    {
+                        name: "Side Plank (each side)",
+                        details: "3 sets x 30 seconds per side, Rest 30 seconds",
+                        id: "day5-ex5"
+                    }
+                ]
+            },
+            {
+                day: 6,
+                title: "Cardio or Recovery",
+                focus: "Light Cardio/Recovery",
+                exercises: [
+                    {
+                        name: "Jog, brisk walk, or bike for 20–30 minutes",
+                        details: "Light cardio for recovery",
+                        id: "day6-ex1"
+                    },
+                    {
+                        name: "Stretch or yoga for flexibility recovery",
+                        details: "Focus on tight muscles from previous workouts",
+                        id: "day6-ex2"
+                    }
+                ]
+            },
+            {
+                day: 7,
+                title: "Rest",
+                focus: "Complete Recovery",
+                exercises: [
+                    {
+                        name: "Complete rest day",
+                        details: "Allow muscles to recover and rebuild",
+                        id: "day7-ex1"
+                    }
+                ]
+            }
+        ];
+
+        // Motivational messages
+        const motivationMessages = [
+            {
+                title: "You're crushing it!",
+                text: "Another workout completed! Your consistency is building something amazing."
+            },
+            {
+                title: "Progress happens daily!",
+                text: "Every rep you complete is making you stronger than yesterday."
+            },
+            {
+                title: "Keep the momentum going!",
+                text: "You're on a streak! Don't break the chain of success."
+            },
+            {
+                title: "Small steps, big results!",
+                text: "Consistency over time leads to incredible transformations."
+            },
+            {
+                title: "You've got this!",
+                text: "Remember why you started and keep pushing forward."
+            },
+            {
+                title: "Making yourself proud!",
+                text: "The best project you'll ever work on is you."
+            },
+            {
+                title: "Strength in consistency!",
+                text: "It's not about perfect workouts, it's about not missing workouts."
+            }
+        ];
+
+        // DOM Elements
+        const tabs = document.querySelectorAll('.tab');
+        const dayContents = document.querySelectorAll('.day-content');
+        const currentDateElement = document.getElementById('current-date');
+        const completedWorkoutsElement = document.getElementById('completed-workouts');
+        const currentStreakElement = document.getElementById('current-streak');
+        const completionRateElement = document.getElementById('completion-rate');
+        const resetProgressBtn = document.getElementById('reset-progress-btn');
+        const toast = document.getElementById('toast');
+        const motivationTitle = document.getElementById('motivation-title');
+        const motivationText = document.getElementById('motivation-text');
+        const streakCalendar = document.getElementById('streak-calendar');
+
+        // Set current date
+        const today = new Date();
+        currentDateElement.textContent = today.toLocaleDateString('en-US', { 
+            weekday: 'long', 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+
+        // Initialize local storage structure if not exists
+        function initLocalStorage() {
+            if (!localStorage.getItem('workoutProgress')) {
+                const initialProgress = {
+                    exercises: {},
+                    stats: {
+                        completedWorkouts: 0,
+                        currentStreak: 0,
+                        totalExercises: 0,
+                        completedExercises: 0
+                    },
+                    achievements: {
+                        firstWorkout: false,
+                        streak3: false,
+                        streak7: false,
+                        fullWeek: false,
+                        workouts10: false,
+                        perfectDay: false
+                    },
+                    streakDays: {},
+                    lastWorkoutDate: null
+                };
+                localStorage.setItem('workoutProgress', JSON.stringify(initialProgress));
+            }
+        }
+
+        // Load progress from local storage
+        function loadProgress() {
+            const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+            
+            // Update stats
+            completedWorkoutsElement.textContent = progress.stats.completedWorkouts;
+            currentStreakElement.textContent = progress.stats.currentStreak;
+            
+            // Calculate completion rate
+            const completionRate = progress.stats.totalExercises
