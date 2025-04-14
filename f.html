@@ -917,6 +917,462 @@
             }
         }
 
+        // Function to map workout days to weekdays (Day 1 = Monday, Day 7 = Sunday)
+function mapWorkoutDaysToWeekdays() {
+    // Get current date and current day of week (0 = Sunday, 1 = Monday, etc.)
+    const today = new Date();
+    let currentDayOfWeek = today.getDay(); // 0-6
+    
+    // Convert to our format where Monday is Day 1 (1-7)
+    // Sunday in JS is 0, but in our workout program it's Day 7
+    const workoutDayMapping = {
+        1: 1, // Monday -> Day 1
+        2: 2, // Tuesday -> Day 2
+        3: 3, // Wednesday -> Day 3
+        4: 4, // Thursday -> Day 4
+        5: 5, // Friday -> Day 5
+        6: 6, // Saturday -> Day 6
+        0: 7  // Sunday -> Day 7
+    };
+    
+    // Get today's workout day number
+    const todayWorkoutDay = workoutDayMapping[currentDayOfWeek];
+    
+    // Highlight the appropriate tab for today
+    tabs.forEach(tab => {
+        const tabDay = parseInt(tab.getAttribute('data-day'));
+        tab.classList.remove('active');
+        
+        if (tabDay === todayWorkoutDay) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Show the appropriate workout content for today
+    dayContents.forEach(content => {
+        content.classList.remove('active');
+        const contentDay = parseInt(content.id.split('-')[1]);
+        
+        if (contentDay === todayWorkoutDay) {
+            content.classList.add('active');
+        }
+    });
+    
+    // Add a visual indicator to show today's workout day
+    tabs.forEach(tab => {
+        const dayNumber = parseInt(tab.getAttribute('data-day'));
+        // Remove any existing indicator
+        tab.style.fontWeight = 'normal';
+        
+        if (dayNumber === todayWorkoutDay) {
+            tab.style.fontWeight = 'bold';
+            tab.textContent += ' (Today)';
+        }
+    });
+    
+    return todayWorkoutDay;
+}
+
+// Function to populate exercise lists for each day
+function populateExercises() {
+    workoutProgram.forEach(day => {
+        const exerciseListElement = document.getElementById(`exercise-list-${day.day}`);
+        
+        // Clear any existing content
+        exerciseListElement.innerHTML = '';
+        
+        // Add each exercise
+        day.exercises.forEach(exercise => {
+            const exerciseElement = document.createElement('div');
+            exerciseElement.className = 'exercise-item';
+            
+            // Get progress data from localStorage
+            const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+            const isCompleted = progress.exercises[exercise.id] || false;
+            
+            exerciseElement.innerHTML = `
+                <div class="exercise-info">
+                    <div class="exercise-name">${exercise.name}</div>
+                    <div class="exercise-details">${exercise.details}</div>
+                </div>
+                <div class="exercise-actions">
+                    <div class="checkbox-wrapper">
+                        <div class="custom-checkbox ${isCompleted ? 'checked' : ''}" data-exercise-id="${exercise.id}"></div>
+                    </div>
+                </div>
+            `;
+            
+            exerciseListElement.appendChild(exerciseElement);
+        });
+        
+        // Update progress bar
+        updateDayProgress(day.day);
+    });
+    
+    // Add event listeners to checkboxes
+    addCheckboxEventListeners();
+}
+
+// Function to update progress bar for a specific day
+function updateDayProgress(dayNumber) {
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    const dayExercises = workoutProgram[dayNumber - 1].exercises;
+    let completedCount = 0;
+    
+    dayExercises.forEach(exercise => {
+        if (progress.exercises[exercise.id]) {
+            completedCount++;
+        }
+    });
+    
+    const progressPercentage = dayExercises.length > 0 ? 
+        (completedCount / dayExercises.length) * 100 : 0;
+    
+    const progressBar = document.getElementById(`progress-${dayNumber}`);
+    progressBar.style.width = `${progressPercentage}%`;
+    
+    // If all exercises for the day are completed, mark the day as done
+    if (progressPercentage === 100 && dayExercises.length > 0) {
+        markDayAsCompleted(dayNumber);
+    }
+}
+
+// Function to mark a day as completed in streak calendar
+function markDayAsCompleted(dayNumber) {
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    const today = new Date();
+    const dateKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+    
+    // Check if this day was already marked as completed
+    if (!progress.streakDays[dateKey]) {
+        progress.streakDays[dateKey] = true;
+        progress.stats.completedWorkouts++;
+        progress.lastWorkoutDate = dateKey;
+        
+        // Check achievements
+        checkAchievements(progress);
+        
+        // Update streak
+        updateStreak(progress);
+        
+        // Save progress
+        localStorage.setItem('workoutProgress', JSON.stringify(progress));
+        
+        // Update UI
+        updateStats(progress);
+        updateStreakCalendar();
+        updateBadges(progress);
+        
+        // Show random motivational message
+        showRandomMotivation();
+        
+        // Show toast
+        showToast(`Day ${dayNumber} workout completed! Great job!`);
+    }
+}
+
+// Event handler for when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize local storage if needed
+    initLocalStorage();
+    
+    // Map workout days to weekdays and highlight today's workout
+    const todayWorkoutDay = mapWorkoutDaysToWeekdays();
+    
+    // Populate exercises for all days
+    populateExercises();
+    
+    // Load user progress
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    updateStats(progress);
+    updateStreakCalendar();
+    updateBadges(progress);
+    
+    // Show a welcome or motivational message based on current streak
+    if (progress.stats.currentStreak > 0) {
+        showRandomMotivation();
+    }
+    
+    console.log(`Today is workout day ${todayWorkoutDay}: ${workoutProgram[todayWorkoutDay-1].title}`);
+});
+
+// Add event listeners to checkboxes dynamically
+function addCheckboxEventListeners() {
+    const checkboxes = document.querySelectorAll('.custom-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('click', function() {
+            const exerciseId = this.getAttribute('data-exercise-id');
+            toggleExerciseCompletion(exerciseId, this);
+        });
+    });
+}
+
+// Toggle exercise completion status
+function toggleExerciseCompletion(exerciseId, checkboxElement) {
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    
+    // Toggle completion status
+    progress.exercises[exerciseId] = !progress.exercises[exerciseId];
+    
+    // Update UI
+    if (progress.exercises[exerciseId]) {
+        checkboxElement.classList.add('checked');
+        
+        // Update total completed exercises count
+        progress.stats.completedExercises++;
+        
+        // Show toast notification
+        showToast('Exercise completed! Keep it up!');
+    } else {
+        checkboxElement.classList.remove('checked');
+        progress.stats.completedExercises--;
+    }
+    
+    // Calculate total exercises if not already done
+    if (progress.stats.totalExercises === 0) {
+        workoutProgram.forEach(day => {
+            progress.stats.totalExercises += day.exercises.length;
+        });
+    }
+    
+    // Update completion rate
+    const completionRate = Math.round((progress.stats.completedExercises / progress.stats.totalExercises) * 100);
+    progress.stats.completionRate = completionRate;
+    
+    // Save progress
+    localStorage.setItem('workoutProgress', JSON.stringify(progress));
+    
+    // Update stats display
+    updateStats(progress);
+    
+    // Find which day this exercise belongs to
+    let dayNumber;
+    workoutProgram.forEach(day => {
+        day.exercises.forEach(exercise => {
+            if (exercise.id === exerciseId) {
+                dayNumber = day.day;
+            }
+        });
+    });
+    
+    // Update progress bar for the day
+    if (dayNumber) {
+        updateDayProgress(dayNumber);
+    }
+    
+    // Check achievements
+    checkAchievements(progress);
+    updateBadges(progress);
+}
+
+// Show toast notification
+function showToast(message) {
+    const toastElement = document.getElementById('toast');
+    const toastMessage = toastElement.querySelector('.toast-message');
+    
+    toastMessage.textContent = message;
+    toastElement.classList.add('show');
+    
+    setTimeout(() => {
+        toastElement.classList.remove('show');
+    }, 3000);
+}
+
+// Show random motivational message
+function showRandomMotivation() {
+    const randomIndex = Math.floor(Math.random() * motivationMessages.length);
+    const message = motivationMessages[randomIndex];
+    
+    motivationTitle.textContent = message.title;
+    motivationText.textContent = message.text;
+}
+
+// Update streak calendar
+function updateStreakCalendar() {
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    const streakDays = progress.streakDays;
+    
+    // Clear calendar
+    streakCalendar.innerHTML = '';
+    
+    // Create last 28 days calendar
+    const today = new Date();
+    
+    for (let i = 27; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(today.getDate() - i);
+        
+        const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        const isActive = streakDays[dateKey] || false;
+        const isToday = i === 0;
+        
+        const dayElement = document.createElement('div');
+        dayElement.className = `calendar-day${isActive ? ' active' : ''}${isToday ? ' today' : ''}`;
+        dayElement.textContent = date.getDate();
+        
+        streakCalendar.appendChild(dayElement);
+    }
+}
+
+// Calculate and update current streak
+function updateStreak(progress) {
+    const today = new Date();
+    let currentStreak = 0;
+    
+    // Check if yesterday's workout was completed
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayKey = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
+    
+    // If yesterday's workout was completed, continue the streak
+    // Otherwise, start a new streak
+    if (progress.streakDays[yesterdayKey] || progress.stats.currentStreak === 0) {
+        currentStreak = progress.stats.currentStreak + 1;
+    } else {
+        currentStreak = 1;
+    }
+    
+    progress.stats.currentStreak = currentStreak;
+}
+
+// Update stats display
+function updateStats(progress) {
+    completedWorkoutsElement.textContent = progress.stats.completedWorkouts;
+    currentStreakElement.textContent = progress.stats.currentStreak;
+    
+    // Update completion rate
+    const completionRate = progress.stats.totalExercises > 0 ? 
+        Math.round((progress.stats.completedExercises / progress.stats.totalExercises) * 100) : 0;
+    completionRateElement.textContent = `${completionRate}%`;
+}
+
+// Check and update achievements
+function checkAchievements(progress) {
+    // First workout achievement
+    if (progress.stats.completedWorkouts >= 1 && !progress.achievements.firstWorkout) {
+        progress.achievements.firstWorkout = true;
+        showToast('Achievement unlocked: First Workout!');
+    }
+    
+    // 3-day streak achievement
+    if (progress.stats.currentStreak >= 3 && !progress.achievements.streak3) {
+        progress.achievements.streak3 = true;
+        showToast('Achievement unlocked: 3-Day Streak!');
+    }
+    
+    // 7-day streak achievement
+    if (progress.stats.currentStreak >= 7 && !progress.achievements.streak7) {
+        progress.achievements.streak7 = true;
+        showToast('Achievement unlocked: 7-Day Streak!');
+    }
+    
+    // 10 workouts achievement
+    if (progress.stats.completedWorkouts >= 10 && !progress.achievements.workouts10) {
+        progress.achievements.workouts10 = true;
+        showToast('Achievement unlocked: 10 Workouts Completed!');
+    }
+    
+    // Full week achievement (all 7 days have at least one completed exercise)
+    const hasCompletedFullWeek = checkFullWeekCompletion();
+    if (hasCompletedFullWeek && !progress.achievements.fullWeek) {
+        progress.achievements.fullWeek = true;
+        showToast('Achievement unlocked: Full Week Completed!');
+    }
+    
+    // Perfect day achievement (complete all exercises for a single day)
+    const hasPerfectDay = checkPerfectDayCompletion();
+    if (hasPerfectDay && !progress.achievements.perfectDay) {
+        progress.achievements.perfectDay = true;
+        showToast('Achievement unlocked: Perfect Day!');
+    }
+}
+
+// Check if user has completed at least one exercise for each day of the week
+function checkFullWeekCompletion() {
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    const daysCompleted = new Set();
+    
+    // Check each exercise
+    Object.keys(progress.exercises).forEach(exerciseId => {
+        if (progress.exercises[exerciseId]) {
+            // Extract day number from exercise ID (format: "day{X}-ex{Y}")
+            const dayNumber = parseInt(exerciseId.split('-')[0].replace('day', ''));
+            daysCompleted.add(dayNumber);
+        }
+    });
+    
+    // Check if all 7 days have at least one completed exercise
+    return daysCompleted.size >= 7;
+}
+
+// Check if user has completed all exercises for any single day
+function checkPerfectDayCompletion() {
+    for (let dayNumber = 1; dayNumber <= 7; dayNumber++) {
+        const dayExercises = workoutProgram[dayNumber - 1].exercises;
+        const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+        
+        let allCompleted = true;
+        for (const exercise of dayExercises) {
+            if (!progress.exercises[exercise.id]) {
+                allCompleted = false;
+                break;
+            }
+        }
+        
+        if (allCompleted && dayExercises.length > 0) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Update badges display
+function updateBadges(progress) {
+    // First workout badge
+    if (progress.achievements.firstWorkout) {
+        document.getElementById('badge-first-workout').classList.add('unlocked');
+    }
+    
+    // 3-day streak badge
+    if (progress.achievements.streak3) {
+        document.getElementById('badge-streak-3').classList.add('unlocked');
+    }
+    
+    // 7-day streak badge
+    if (progress.achievements.streak7) {
+        document.getElementById('badge-streak-7').classList.add('unlocked');
+    }
+    
+    // Full week badge
+    if (progress.achievements.fullWeek) {
+        document.getElementById('badge-full-week').classList.add('unlocked');
+    }
+    
+    // 10 workouts badge
+    if (progress.achievements.workouts10) {
+        document.getElementById('badge-workouts-10').classList.add('unlocked');
+    }
+    
+    // Perfect day badge
+    if (progress.achievements.perfectDay) {
+        document.getElementById('badge-perfect-day').classList.add('unlocked');
+    }
+}
+
+// Reset progress button event listener
+resetProgressBtn.addEventListener('click', function() {
+    if (confirm('Are you sure you want to reset all workout progress? This cannot be undone.')) {
+        // Clear local storage and reinitialize
+        localStorage.removeItem('workoutProgress');
+        initLocalStorage();
+        
+        // Reload page to reset UI
+        location.reload();
+    }
+});
+
         // Load progress from local storage
         function loadProgress() {
             const progress = JSON.parse(localStorage.getItem('workoutProgress'));
@@ -927,3 +1383,787 @@
             
             // Calculate completion rate
             const completionRate = progress.stats.totalExercises
+
+        // Workout Program Data
+const workoutProgram = [
+    {
+        day: 1,
+        title: "Upper Body Strength",
+        focus: "Chest, Shoulders, Triceps",
+        exercises: [
+            {
+                name: "Push-ups (Standard or incline)",
+                details: "4 sets x 10–15 reps, Rest 60 seconds between sets",
+                id: "day1-ex1"
+            },
+            {
+                name: "Pike Push-ups (Shoulder-focused)",
+                details: "3 sets x 8–12 reps, Rest 60 seconds",
+                id: "day1-ex2"
+            },
+            {
+                name: "Tricep Dips (Use a chair or bench)",
+                details: "3 sets x 12–15 reps, Rest 60 seconds",
+                id: "day1-ex3"
+            },
+            {
+                name: "Plank Shoulder Taps",
+                details: "3 sets x 20 taps (10 each side), Rest 45 seconds",
+                id: "day1-ex4"
+            },
+            {
+                name: "Superman Hold (Lower back)",
+                details: "3 sets x 30 seconds, Rest 45 seconds",
+                id: "day1-ex5"
+            }
+        ]
+    },
+    {
+        day: 2,
+        title: "Lower Body + Core",
+        focus: "Quads, Glutes, Hamstrings, Core",
+        exercises: [
+            {
+                name: "Bodyweight Squats",
+                details: "4 sets x 15–20 reps, Rest 60 seconds",
+                id: "day2-ex1"
+            },
+            {
+                name: "Bulgarian Split Squats (Each leg)",
+                details: "3 sets x 10–12 reps, Rest 60 seconds",
+                id: "day2-ex2"
+            },
+            {
+                name: "Glute Bridges",
+                details: "4 sets x 15–20 reps, Rest 60 seconds",
+                id: "day2-ex3"
+            },
+            {
+                name: "Lunges (Bodyweight)",
+                details: "3 sets x 12 reps each leg, Rest 60 seconds",
+                id: "day2-ex4"
+            },
+            {
+                name: "Leg Raises",
+                details: "3 sets x 15 reps, Rest 45 seconds",
+                id: "day2-ex5"
+            }
+        ]
+    },
+    {
+        day: 3,
+        title: "Cardio/Endurance (HIIT-style)",
+        focus: "Full Body + Fat Burn",
+        exercises: [
+            {
+                name: "Jump Squats",
+                details: "40 sec work, 20 sec rest, repeat 3-4 rounds",
+                id: "day3-ex1"
+            },
+            {
+                name: "Push-ups",
+                details: "40 sec work, 20 sec rest, repeat 3-4 rounds",
+                id: "day3-ex2"
+            },
+            {
+                name: "Mountain Climbers",
+                details: "40 sec work, 20 sec rest, repeat 3-4 rounds",
+                id: "day3-ex3"
+            },
+            {
+                name: "Burpees",
+                details: "40 sec work, 20 sec rest, repeat 3-4 rounds",
+                id: "day3-ex4"
+            },
+            {
+                name: "High Knees",
+                details: "40 sec work, 20 sec rest, repeat 3-4 rounds",
+                id: "day3-ex5"
+            }
+        ]
+    },
+    {
+        day: 4,
+        title: "Rest or Active Recovery",
+        focus: "Light Movement",
+        exercises: [
+            {
+                name: "Walk or jog for 20–30 minutes",
+                details: "Light cardio to aid recovery",
+                id: "day4-ex1"
+            },
+            {
+                name: "Stretch or do yoga",
+                details: "To improve flexibility and mobility",
+                id: "day4-ex2"
+            }
+        ]
+    },
+    {
+        day: 5,
+        title: "Full Body Strength",
+        focus: "Total Body Strength + Core",
+        exercises: [
+            {
+                name: "Burpees",
+                details: "4 sets x 10 reps, Rest 60 seconds",
+                id: "day5-ex1"
+            },
+            {
+                name: "Push-ups",
+                details: "3 sets x 15–20 reps, Rest 60 seconds",
+                id: "day5-ex2"
+            },
+            {
+                name: "Squat to Calf Raise (Bodyweight)",
+                details: "3 sets x 15 reps, Rest 60 seconds",
+                id: "day5-ex3"
+            },
+            {
+                name: "Plank to Push-up",
+                details: "3 sets x 10 reps, Rest 45 seconds",
+                id: "day5-ex4"
+            },
+            {
+                name: "Side Plank (each side)",
+                details: "3 sets x 30 seconds per side, Rest 30 seconds",
+                id: "day5-ex5"
+            }
+        ]
+    },
+    {
+        day: 6,
+        title: "Cardio or Recovery",
+        focus: "Light Cardio/Recovery",
+        exercises: [
+            {
+                name: "Jog, brisk walk, or bike for 20–30 minutes",
+                details: "Light cardio for recovery",
+                id: "day6-ex1"
+            },
+            {
+                name: "Stretch or yoga for flexibility recovery",
+                details: "Focus on tight muscles from previous workouts",
+                id: "day6-ex2"
+            }
+        ]
+    },
+    {
+        day: 7,
+        title: "Rest",
+        focus: "Complete Recovery",
+        exercises: [
+            {
+                name: "Complete rest day",
+                details: "Allow muscles to recover and rebuild",
+                id: "day7-ex1"
+            }
+        ]
+    }
+];
+
+// Motivational messages
+const motivationMessages = [
+    {
+        title: "You're crushing it!",
+        text: "Another workout completed! Your consistency is building something amazing."
+    },
+    {
+        title: "Progress happens daily!",
+        text: "Every rep you complete is making you stronger than yesterday."
+    },
+    {
+        title: "Keep the momentum going!",
+        text: "You're on a streak! Don't break the chain of success."
+    },
+    {
+        title: "Small steps, big results!",
+        text: "Consistency over time leads to incredible transformations."
+    },
+    {
+        title: "You've got this!",
+        text: "Remember why you started and keep pushing forward."
+    },
+    {
+        title: "Making yourself proud!",
+        text: "The best project you'll ever work on is you."
+    },
+    {
+        title: "Strength in consistency!",
+        text: "It's not about perfect workouts, it's about not missing workouts."
+    }
+];
+
+// DOM Elements
+const tabs = document.querySelectorAll('.tab');
+const dayContents = document.querySelectorAll('.day-content');
+const currentDateElement = document.getElementById('current-date');
+const completedWorkoutsElement = document.getElementById('completed-workouts');
+const currentStreakElement = document.getElementById('current-streak');
+const completionRateElement = document.getElementById('completion-rate');
+const resetProgressBtn = document.getElementById('reset-progress-btn');
+const toast = document.getElementById('toast');
+const motivationTitle = document.getElementById('motivation-title');
+const motivationText = document.getElementById('motivation-text');
+const streakCalendar = document.getElementById('streak-calendar');
+
+// Set current date
+const today = new Date();
+currentDateElement.textContent = today.toLocaleDateString('en-US', { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+});
+
+// Initialize local storage structure if not exists
+function initLocalStorage() {
+    if (!localStorage.getItem('workoutProgress')) {
+        const initialProgress = {
+            exercises: {},
+            stats: {
+                completedWorkouts: 0,
+                currentStreak: 0,
+                totalExercises: 0,
+                completedExercises: 0
+            },
+            achievements: {
+                firstWorkout: false,
+                streak3: false,
+                streak7: false,
+                fullWeek: false,
+                workouts10: false,
+                perfectDay: false
+            },
+            streakDays: {},
+            lastWorkoutDate: null
+        };
+        localStorage.setItem('workoutProgress', JSON.stringify(initialProgress));
+    }
+}
+
+// Function to map workout days to weekdays (Day 1 = Monday, Day 7 = Sunday)
+function mapWorkoutDaysToWeekdays() {
+    // Get current date and current day of week (0 = Sunday, 1 = Monday, etc.)
+    const today = new Date();
+    let currentDayOfWeek = today.getDay(); // 0-6
+    
+    // Convert to our format where Monday is Day 1 (1-7)
+    // Sunday in JS is 0, but in our workout program it's Day 7
+    const workoutDayMapping = {
+        1: 1, // Monday -> Day 1
+        2: 2, // Tuesday -> Day 2
+        3: 3, // Wednesday -> Day 3
+        4: 4, // Thursday -> Day 4
+        5: 5, // Friday -> Day 5
+        6: 6, // Saturday -> Day 6
+        0: 7  // Sunday -> Day 7
+    };
+    
+    // Get today's workout day number
+    const todayWorkoutDay = workoutDayMapping[currentDayOfWeek];
+    
+    // Highlight the appropriate tab for today
+    tabs.forEach(tab => {
+        const tabDay = parseInt(tab.getAttribute('data-day'));
+        tab.classList.remove('active');
+        
+        if (tabDay === todayWorkoutDay) {
+            tab.classList.add('active');
+        }
+    });
+    
+    // Show the appropriate workout content for today
+    dayContents.forEach(content => {
+        content.classList.remove('active');
+        const contentDay = parseInt(content.id.split('-')[1]);
+        
+        if (contentDay === todayWorkoutDay) {
+            content.classList.add('active');
+        }
+    });
+    
+    // Add a visual indicator to show today's workout day
+    tabs.forEach(tab => {
+        const dayNumber = parseInt(tab.getAttribute('data-day'));
+        // Remove any existing indicator
+        tab.style.fontWeight = 'normal';
+        tab.textContent = `Day ${dayNumber}`;
+        
+        if (dayNumber === todayWorkoutDay) {
+            tab.style.fontWeight = 'bold';
+            tab.textContent += ' (Today)';
+        }
+    });
+    
+    return todayWorkoutDay;
+}
+
+// Function to populate exercise lists for each day
+function populateExercises() {
+    workoutProgram.forEach(day => {
+        const exerciseListElement = document.getElementById(`exercise-list-${day.day}`);
+        
+        // Clear any existing content
+        exerciseListElement.innerHTML = '';
+        
+        // Add each exercise
+        day.exercises.forEach(exercise => {
+            const exerciseElement = document.createElement('div');
+            exerciseElement.className = 'exercise-item';
+            
+            // Get progress data from localStorage
+            const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+            const isCompleted = progress.exercises[exercise.id] || false;
+            
+            exerciseElement.innerHTML = `
+                <div class="exercise-info">
+                    <div class="exercise-name">${exercise.name}</div>
+                    <div class="exercise-details">${exercise.details}</div>
+                </div>
+                <div class="exercise-actions">
+                    <div class="checkbox-wrapper">
+                        <div class="custom-checkbox ${isCompleted ? 'checked' : ''}" data-exercise-id="${exercise.id}"></div>
+                    </div>
+                </div>
+            `;
+            
+            exerciseListElement.appendChild(exerciseElement);
+        });
+        
+        // Update progress bar
+        updateDayProgress(day.day);
+    });
+    
+    // Add event listeners to checkboxes
+    addCheckboxEventListeners();
+}
+
+// Function to update progress bar for a specific day
+function updateDayProgress(dayNumber) {
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    const dayExercises = workoutProgram[dayNumber - 1].exercises;
+    let completedCount = 0;
+    
+    dayExercises.forEach(exercise => {
+        if (progress.exercises[exercise.id]) {
+            completedCount++;
+        }
+    });
+    
+    const progressPercentage = dayExercises.length > 0 ? 
+        (completedCount / dayExercises.length) * 100 : 0;
+    
+    const progressBar = document.getElementById(`progress-${dayNumber}`);
+    progressBar.style.width = `${progressPercentage}%`;
+    
+    // If all exercises for the day are completed, mark the day as done
+    if (progressPercentage === 100 && dayExercises.length > 0) {
+        markDayAsCompleted(dayNumber);
+    }
+}
+
+// Function to mark a day as completed in streak calendar
+function markDayAsCompleted(dayNumber) {
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    const today = new Date();
+    const dateKey = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
+    
+    // Check if this day was already marked as completed
+    if (!progress.streakDays[dateKey]) {
+        progress.streakDays[dateKey] = true;
+        progress.stats.completedWorkouts++;
+        progress.lastWorkoutDate = dateKey;
+        
+        // Check achievements
+        checkAchievements(progress);
+        
+        // Update streak
+        updateStreak(progress);
+        
+        // Save progress
+        localStorage.setItem('workoutProgress', JSON.stringify(progress));
+        
+        // Update UI
+        updateStats(progress);
+        updateStreakCalendar();
+        updateBadges(progress);
+        
+        // Show random motivational message
+        showRandomMotivation();
+        
+        // Show toast
+        showToast(`Day ${dayNumber} workout completed! Great job!`);
+    }
+}
+
+// Event handler for when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize local storage if needed
+    initLocalStorage();
+    
+    // Map workout days to weekdays and highlight today's workout
+    const todayWorkoutDay = mapWorkoutDaysToWeekdays();
+    
+    // Populate exercises for all days
+    populateExercises();
+    
+    // Load user progress
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    updateStats(progress);
+    updateStreakCalendar();
+    updateBadges(progress);
+    
+    // Show a welcome or motivational message based on current streak
+    if (progress.stats.currentStreak > 0) {
+        showRandomMotivation();
+    }
+    
+    console.log(`Today is workout day ${todayWorkoutDay}: ${workoutProgram[todayWorkoutDay-1].title}`);
+});
+
+// Add event listeners to checkboxes dynamically
+function addCheckboxEventListeners() {
+    const checkboxes = document.querySelectorAll('.custom-checkbox');
+    
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('click', function() {
+            const exerciseId = this.getAttribute('data-exercise-id');
+            toggleExerciseCompletion(exerciseId, this);
+        });
+    });
+}
+
+// Toggle exercise completion status
+function toggleExerciseCompletion(exerciseId, checkboxElement) {
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    
+    // Toggle completion status
+    progress.exercises[exerciseId] = !progress.exercises[exerciseId];
+    
+    // Update UI
+    if (progress.exercises[exerciseId]) {
+        checkboxElement.classList.add('checked');
+        
+        // Update total completed exercises count
+        progress.stats.completedExercises++;
+        
+        // Show toast notification
+        showToast('Exercise completed! Keep it up!');
+    } else {
+        checkboxElement.classList.remove('checked');
+        progress.stats.completedExercises--;
+    }
+    
+    // Calculate total exercises if not already done
+    if (progress.stats.totalExercises === 0) {
+        workoutProgram.forEach(day => {
+            progress.stats.totalExercises += day.exercises.length;
+        });
+    }
+    
+    // Update completion rate
+    const completionRate = Math.round((progress.stats.completedExercises / progress.stats.totalExercises) * 100);
+    progress.stats.completionRate = completionRate;
+    
+    // Save progress
+    localStorage.setItem('workoutProgress', JSON.stringify(progress));
+    
+    // Update stats display
+    updateStats(progress);
+    
+    // Find which day this exercise belongs to
+    let dayNumber;
+    workoutProgram.forEach(day => {
+        day.exercises.forEach(exercise => {
+            if (exercise.id === exerciseId) {
+                dayNumber = day.day;
+            }
+        });
+    });
+    
+    // Update progress bar for the day
+    if (dayNumber) {
+        updateDayProgress(dayNumber);
+    }
+    
+    // Check achievements
+    checkAchievements(progress);
+    updateBadges(progress);
+}
+
+// Show toast notification
+function showToast(message) {
+    const toastElement = document.getElementById('toast');
+    const toastMessage = toastElement.querySelector('.toast-message');
+    
+    toastMessage.textContent = message;
+    toastElement.classList.add('show');
+    
+    setTimeout(() => {
+        toastElement.classList.remove('show');
+    }, 3000);
+}
+
+// Show random motivational message
+function showRandomMotivation() {
+    const randomIndex = Math.floor(Math.random() * motivationMessages.length);
+    const message = motivationMessages[randomIndex];
+    
+    motivationTitle.textContent = message.title;
+    motivationText.textContent = message.text;
+}
+
+// Update streak calendar
+function updateStreakCalendar() {
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    const streakDays = progress.streakDays;
+    
+    // Clear calendar
+    streakCalendar.innerHTML = '';
+    
+    // Create last 28 days calendar
+    const today = new Date();
+    
+    for (let i = 27; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(today.getDate() - i);
+        
+        const dateKey = `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+        const isActive = streakDays[dateKey] || false;
+        const isToday = i === 0;
+        
+        const dayElement = document.createElement('div');
+        dayElement.className = `calendar-day${isActive ? ' active' : ''}${isToday ? ' today' : ''}`;
+        dayElement.textContent = date.getDate();
+        
+        streakCalendar.appendChild(dayElement);
+    }
+}
+
+// Calculate and update current streak
+function updateStreak(progress) {
+    const today = new Date();
+    let currentStreak = 0;
+    
+    // Check if yesterday's workout was completed
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+    const yesterdayKey = `${yesterday.getFullYear()}-${yesterday.getMonth() + 1}-${yesterday.getDate()}`;
+    
+    // If yesterday's workout was completed, continue the streak
+    // Otherwise, start a new streak
+    if (progress.streakDays[yesterdayKey] || progress.stats.currentStreak === 0) {
+        currentStreak = progress.stats.currentStreak + 1;
+    } else {
+        currentStreak = 1;
+    }
+    
+    progress.stats.currentStreak = currentStreak;
+}
+
+// Update stats display
+function updateStats(progress) {
+    completedWorkoutsElement.textContent = progress.stats.completedWorkouts;
+    currentStreakElement.textContent = progress.stats.currentStreak;
+    
+    // Update completion rate
+    const completionRate = progress.stats.totalExercises > 0 ? 
+        Math.round((progress.stats.completedExercises / progress.stats.totalExercises) * 100) : 0;
+    completionRateElement.textContent = `${completionRate}%`;
+}
+
+// Check and update achievements
+function checkAchievements(progress) {
+    // First workout achievement
+    if (progress.stats.completedWorkouts >= 1 && !progress.achievements.firstWorkout) {
+        progress.achievements.firstWorkout = true;
+        showToast('Achievement unlocked: First Workout!');
+    }
+    
+    // 3-day streak achievement
+    if (progress.stats.currentStreak >= 3 && !progress.achievements.streak3) {
+        progress.achievements.streak3 = true;
+        showToast('Achievement unlocked: 3-Day Streak!');
+    }
+    
+    // 7-day streak achievement
+    if (progress.stats.currentStreak >= 7 && !progress.achievements.streak7) {
+        progress.achievements.streak7 = true;
+        showToast('Achievement unlocked: 7-Day Streak!');
+    }
+    
+    // 10 workouts achievement
+    if (progress.stats.completedWorkouts >= 10 && !progress.achievements.workouts10) {
+        progress.achievements.workouts10 = true;
+        showToast('Achievement unlocked: 10 Workouts Completed!');
+    }
+    
+    // Full week achievement (all 7 days have at least one completed exercise)
+    const hasCompletedFullWeek = checkFullWeekCompletion();
+    if (hasCompletedFullWeek && !progress.achievements.fullWeek) {
+        progress.achievements.fullWeek = true;
+        showToast('Achievement unlocked: Full Week Completed!');
+    }
+    
+    // Perfect day achievement (complete all exercises for a single day)
+    const hasPerfectDay = checkPerfectDayCompletion();
+    if (hasPerfectDay && !progress.achievements.perfectDay) {
+        progress.achievements.perfectDay = true;
+        showToast('Achievement unlocked: Perfect Day!');
+    }
+}
+
+// Check if user has completed at least one exercise for each day of the week
+function checkFullWeekCompletion() {
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    const daysCompleted = new Set();
+    
+    // Check each exercise
+    Object.keys(progress.exercises).forEach(exerciseId => {
+        if (progress.exercises[exerciseId]) {
+            // Extract day number from exercise ID (format: "day{X}-ex{Y}")
+            const dayNumber = parseInt(exerciseId.split('-')[0].replace('day', ''));
+            daysCompleted.add(dayNumber);
+        }
+    });
+    
+    // Check if all 7 days have at least one completed exercise
+    return daysCompleted.size >= 7;
+}
+
+// Check if user has completed all exercises for any single day
+function checkPerfectDayCompletion() {
+    for (let dayNumber = 1; dayNumber <= 7; dayNumber++) {
+        const dayExercises = workoutProgram[dayNumber - 1].exercises;
+        const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+        
+        let allCompleted = true;
+        for (const exercise of dayExercises) {
+            if (!progress.exercises[exercise.id]) {
+                allCompleted = false;
+                break;
+            }
+        }
+        
+        if (allCompleted && dayExercises.length > 0) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Update badges display
+function updateBadges(progress) {
+    // First workout badge
+    if (progress.achievements.firstWorkout) {
+        document.getElementById('badge-first-workout').classList.add('unlocked');
+    }
+    
+    // 3-day streak badge
+    if (progress.achievements.streak3) {
+        document.getElementById('badge-streak-3').classList.add('unlocked');
+    }
+    
+    // 7-day streak badge
+    if (progress.achievements.streak7) {
+        document.getElementById('badge-streak-7').classList.add('unlocked');
+    }
+    
+    // Full week badge
+    if (progress.achievements.fullWeek) {
+        document.getElementById('badge-full-week').classList.add('unlocked');
+    }
+    
+    // 10 workouts badge
+    if (progress.achievements.workouts10) {
+        document.getElementById('badge-workouts-10').classList.add('unlocked');
+    }
+    
+    // Perfect day badge
+    if (progress.achievements.perfectDay) {
+        document.getElementById('badge-perfect-day').classList.add('unlocked');
+    }
+}
+
+// Reset progress button event listener
+resetProgressBtn.addEventListener('click', function() {
+    if (confirm('Are you sure you want to reset all workout progress? This cannot be undone.')) {
+        // Clear local storage and reinitialize
+        localStorage.removeItem('workoutProgress');
+        initLocalStorage();
+        
+        // Reload page to reset UI
+        location.reload();
+    }
+});
+
+// Load progress from local storage
+function loadProgress() {
+    const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+    
+    // Update stats
+    completedWorkoutsElement.textContent = progress.stats.completedWorkouts;
+    currentStreakElement.textContent = progress.stats.currentStreak;
+    
+    // Calculate completion rate
+    const completionRate = progress.stats.totalExercises > 0 ? 
+        Math.round((progress.stats.completedExercises / progress.stats.totalExercises) * 100) : 0;
+    completionRateElement.textContent = `${completionRate}%`;
+    
+    // Update each exercise checkbox
+    Object.keys(progress.exercises).forEach(exerciseId => {
+        const isCompleted = progress.exercises[exerciseId];
+        const checkbox = document.querySelector(`.custom-checkbox[data-exercise-id="${exerciseId}"]`);
+        
+        if (checkbox && isCompleted) {
+            checkbox.classList.add('checked');
+        }
+    });
+    
+    // Update progress bars for each day
+    for (let i = 1; i <= 7; i++) {
+        updateDayProgress(i);
+    }
+    
+    // Update streak calendar
+    updateStreakCalendar();
+    
+    // Update badges
+    updateBadges(progress);
+}
+
+// Tab click event listeners
+tabs.forEach(tab => {
+    tab.addEventListener('click', function() {
+        const selectedDay = this.getAttribute('data-day');
+        
+        // Update active tab
+        tabs.forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Update visible content
+        dayContents.forEach(content => {
+            content.classList.remove('active');
+            if (content.id === `day-${selectedDay}`) {
+                content.classList.add('active');
+            }
+        });
+    });
+});
+
+// Initialize the app
+initLocalStorage();
+mapWorkoutDaysToWeekdays();
+populateExercises();
+loadProgress();
+
+// Check for achievements on load
+const progress = JSON.parse(localStorage.getItem('workoutProgress'));
+checkAchievements(progress);
+
+// Show a welcome or motivational message
+if (progress.stats.currentStreak > 0) {
+    showRandomMotivation();
+}
