@@ -1,239 +1,223 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>LuxFit Tracker</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0d1117">
+  <title>7-Day Strength Tracker</title>
+  <link rel="manifest" href="manifest.json">
   <style>
-    :root {
-      --bg-dark: #0c0f1c;
-      --bg-card: #111827;
-      --accent: #00ffe1;
-      --glass: rgba(255, 255, 255, 0.05);
-      --shadow: rgba(0, 255, 225, 0.3);
-    }
-
-    * {
-      box-sizing: border-box;
-      font-family: 'Segoe UI', sans-serif;
-    }
-
     body {
       margin: 0;
-      background: var(--bg-dark);
-      color: white;
-      padding-bottom: 5rem;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+      color: #fff;
     }
-
     header {
+      background: rgba(0,0,0,0.4);
+      padding: 1rem;
       text-align: center;
-      padding: 2rem;
-      background: linear-gradient(90deg, #00c6ff, #0072ff);
-      color: white;
-      border-bottom-left-radius: 30px;
-      border-bottom-right-radius: 30px;
-      box-shadow: 0 8px 30px var(--shadow);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.6);
     }
-
-    header h1 {
+    h1 {
       margin: 0;
-      font-size: 2.5rem;
+      font-size: 2rem;
     }
-
-    .quote {
-      font-style: italic;
-      margin-top: 0.5rem;
-      opacity: 0.8;
-    }
-
-    .streak {
-      background: var(--accent);
-      color: #000;
-      display: inline-block;
-      padding: 0.5rem 1rem;
-      border-radius: 999px;
-      margin-top: 1rem;
-      font-weight: bold;
-      box-shadow: 0 0 15px var(--accent);
-    }
-
-    .container {
-      padding: 1rem;
-      max-width: 1000px;
-      margin: auto;
-    }
-
-    .day-card {
-      background: var(--glass);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 20px;
-      padding: 1.5rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
-      transition: all 0.3s ease;
-      backdrop-filter: blur(8px);
-    }
-
-    .day-card:hover {
-      transform: translateY(-4px) scale(1.01);
-      box-shadow: 0 0 25px var(--shadow);
-      border-color: var(--accent);
-    }
-
-    .day-title {
-      font-size: 1.3rem;
-      color: var(--accent);
-      font-weight: bold;
-      margin-bottom: 1rem;
-    }
-
-    .exercise {
+    nav {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.8rem;
-      gap: 1rem;
-    }
-
-    .exercise input[type="number"] {
-      width: 80px;
-      padding: 0.4rem;
-      border-radius: 10px;
-      border: none;
-      background: #1f2937;
-      color: white;
-      text-align: center;
-      font-size: 1rem;
-    }
-
-    .exercise input[type="number"]:focus {
-      outline: 2px solid var(--accent);
-    }
-
-    footer {
-      position: fixed;
-      bottom: 0;
-      width: 100%;
-      text-align: center;
+      justify-content: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
       padding: 1rem;
-      background: #111;
-      font-size: 0.8rem;
-      opacity: 0.5;
     }
-
-    .save-status {
-      font-size: 0.75rem;
-      color: #0f0;
+    nav button {
+      background: #1e293b;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      color: #fff;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    nav button:hover {
+      background: #3b82f6;
+    }
+    .card {
+      background: linear-gradient(to bottom right, #1f2937, #111827);
+      padding: 1rem;
+      margin: 1rem;
+      border-radius: 1.5rem;
+      box-shadow: 0 12px 25px rgba(0,0,0,0.4);
+      max-width: 600px;
+      margin-inline: auto;
+    }
+    .exercise {
+      margin-bottom: 1.5rem;
+    }
+    .exercise h3 {
+      margin: 0.5rem 0;
+    }
+    input[type="number"] {
+      width: 60px;
+      padding: 0.3rem;
+      border-radius: 0.5rem;
+      border: none;
+      outline: none;
+      margin-right: 0.5rem;
+    }
+    .strength-bar {
+      height: 10px;
+      border-radius: 5px;
+      background: #334155;
+      overflow: hidden;
       margin-top: 0.5rem;
-      text-align: right;
     }
-
+    .strength-fill {
+      height: 100%;
+      background: linear-gradient(to right, #4ade80, #22d3ee);
+      width: 0%;
+    }
+    .submit-btn {
+      background: #16a34a;
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      cursor: pointer;
+      margin-top: 1rem;
+    }
+    .submit-btn:disabled {
+      background: #4b5563;
+    }
+    .rank {
+      margin-top: 0.5rem;
+      font-weight: bold;
+      color: #facc15;
+    }
   </style>
 </head>
 <body>
   <header>
-    <h1>LuxFit Tracker</h1>
-    <div class="quote" id="quote"></div>
-    <div class="streak">🔥 Streak: <span id="streakCount">0</span> days</div>
+    <h1>7-Day Strength Tracker</h1>
+    <p id="quote"></p>
   </header>
-
-  <div class="container" id="workoutContainer"></div>
-
-  <footer>
-    &copy; 2025 LuxFit · All progress saved locally in your browser 💪
-  </footer>
+  <nav id="dayTabs"></nav>
+  <main class="card" id="workoutContainer"></main>
 
   <script>
-    const workouts = {
-      Monday: ["Push-ups", "Pike Push-ups", "Tricep Dips", "Plank Shoulder Taps", "Superman Hold"],
-      Tuesday: ["Bodyweight Squats", "Split Squats", "Glute Bridges", "Lunges", "Leg Raises"],
-      Wednesday: ["Jump Squats", "Push-ups", "Mountain Climbers", "Burpees", "High Knees"],
-      Thursday: ["Stretching", "Yoga", "Walk (30min)"],
-      Friday: ["Burpees", "Push-ups", "Squat to Calf Raise", "Plank to Push-up", "Side Plank"],
-      Saturday: ["Jogging", "Brisk Walk", "Stretch"],
-      Sunday: ["Full Rest Day"]
+    const quotes = [
+      "Push harder than yesterday if you want a different tomorrow.",
+      "Don’t stop when you’re tired. Stop when you’re done.",
+      "It never gets easier, you just get stronger.",
+      "The body achieves what the mind believes."
+    ];
+    document.getElementById("quote").textContent = quotes[Math.floor(Math.random() * quotes.length)];
+
+    const workoutPlan = {
+      Monday: [
+        { name: "Push-ups", sets: 4, reps: 15 },
+        { name: "Pike Push-ups", sets: 3, reps: 12 },
+        { name: "Tricep Dips", sets: 3, reps: 15 },
+        { name: "Plank Shoulder Taps", sets: 3, reps: 20 },
+        { name: "Superman Hold (sec)", sets: 3, reps: 30 },
+      ],
+      Tuesday: [
+        { name: "Bodyweight Squats", sets: 4, reps: 20 },
+        { name: "Bulgarian Split Squats", sets: 3, reps: 12 },
+        { name: "Glute Bridges", sets: 4, reps: 20 },
+        { name: "Lunges", sets: 3, reps: 12 },
+        { name: "Leg Raises", sets: 3, reps: 15 },
+      ],
+      Wednesday: [
+        { name: "Jump Squats", sets: 4, reps: 40 },
+        { name: "Push-ups", sets: 4, reps: 40 },
+        { name: "Mountain Climbers", sets: 4, reps: 40 },
+        { name: "Burpees", sets: 4, reps: 40 },
+        { name: "High Knees", sets: 4, reps: 40 },
+      ],
+      Thursday: [],
+      Friday: [
+        { name: "Burpees", sets: 4, reps: 10 },
+        { name: "Push-ups", sets: 3, reps: 20 },
+        { name: "Squat to Calf Raise", sets: 3, reps: 15 },
+        { name: "Plank to Push-up", sets: 3, reps: 10 },
+        { name: "Side Plank (sec)", sets: 3, reps: 30 },
+      ],
+      Saturday: [],
+      Sunday: [],
     };
 
-    const quotes = [
-      "Push yourself because no one else is going to do it for you.",
-      "You are stronger than you think.",
-      "Success starts with self-discipline.",
-      "Fall in love with taking care of your body.",
-      "Don't count the days, make the days count.",
-      "No pain, no gain!",
-      "Sweat is just fat crying."
-    ];
-
-    const streakKey = "luxfit-streak-v2";
-    const logKey = "luxfit-log-v2";
     const today = new Date();
-    const todayStr = today.toISOString().split("T")[0];
-    const dayName = today.toLocaleDateString("en-US", { weekday: 'long' });
+    const currentDay = today.toLocaleDateString('en-US', { weekday: 'long' });
 
-    let logs = JSON.parse(localStorage.getItem(logKey)) || {};
-    let streak = parseInt(localStorage.getItem(streakKey)) || 0;
+    const dayTabs = document.getElementById('dayTabs');
+    const workoutContainer = document.getElementById('workoutContainer');
 
-    document.getElementById("quote").textContent = quotes[Math.floor(Math.random() * quotes.length)];
-    document.getElementById("streakCount").textContent = streak;
+    Object.keys(workoutPlan).forEach(day => {
+      const btn = document.createElement('button');
+      btn.textContent = day;
+      btn.onclick = () => renderWorkout(day);
+      dayTabs.appendChild(btn);
+    });
 
-    function saveLog(date, exercise, value) {
-      if (!logs[date]) logs[date] = {};
-      logs[date][exercise] = value;
-      localStorage.setItem(logKey, JSON.stringify(logs));
-    }
+    function renderWorkout(day) {
+      workoutContainer.innerHTML = `<h2>${day}</h2>`;
+      const data = workoutPlan[day];
+      if (data.length === 0) {
+        workoutContainer.innerHTML += '<p>Rest or Active Recovery Day.</p>';
+        return;
+      }
+      data.forEach((ex, i) => {
+        const key = `${day}_${i}`;
+        const stored = JSON.parse(localStorage.getItem(key));
+        const locked = day !== currentDay || stored;
 
-    function checkStreak(date) {
-      const done = logs[date] && Object.values(logs[date]).every(val => val > 0);
-      if (done && !logs[date]["__counted"]) {
-        streak++;
-        logs[date]["__counted"] = true;
-        localStorage.setItem(streakKey, streak);
-        document.getElementById("streakCount").textContent = streak;
+        let html = `<div class="exercise">
+          <h3>${ex.name}</h3>
+          <label>Sets Done: <input type="number" ${locked ? "disabled" : ""} id="sets_${key}" min="0" max="${ex.sets}"></label>
+          <label>Reps/Duration per Set: <input type="number" ${locked ? "disabled" : ""} id="reps_${key}" min="0" max="${ex.reps}"></label>
+          <div class="strength-bar"><div class="strength-fill" id="bar_${key}"></div></div>
+          <div class="rank" id="rank_${key}"></div>
+        </div>`;
+
+        workoutContainer.innerHTML += html;
+
+        if (stored) {
+          document.getElementById(`sets_${key}`).value = stored.sets;
+          document.getElementById(`reps_${key}`).value = stored.reps;
+          updateStrength(key, ex.sets, ex.reps, stored.sets, stored.reps);
+        }
+      });
+      if (day === currentDay) {
+        workoutContainer.innerHTML += `<button class="submit-btn" onclick="saveWorkout('${day}')">Save Workout</button>`;
       }
     }
 
-    const container = document.getElementById("workoutContainer");
-
-    function renderDay(name, exercises) {
-      const card = document.createElement("div");
-      card.className = "day-card";
-
-      const title = document.createElement("div");
-      title.className = "day-title";
-      title.textContent = name;
-
-      card.appendChild(title);
-
-      exercises.forEach(ex => {
-        const row = document.createElement("div");
-        row.className = "exercise";
-
-        const label = document.createElement("label");
-        label.textContent = ex;
-
-        const input = document.createElement("input");
-        input.type = "number";
-        input.min = "0";
-        input.placeholder = "Reps";
-
-        const saved = logs[todayStr] && logs[todayStr][ex];
-        if (saved) input.value = saved;
-
-        input.addEventListener("input", () => {
-          saveLog(todayStr, ex, parseInt(input.value) || 0);
-          checkStreak(todayStr);
-        });
-
-        row.appendChild(label);
-        row.appendChild(input);
-        card.appendChild(row);
+    function saveWorkout(day) {
+      workoutPlan[day].forEach((ex, i) => {
+        const key = `${day}_${i}`;
+        const sets = parseInt(document.getElementById(`sets_${key}`).value);
+        const reps = parseInt(document.getElementById(`reps_${key}`).value);
+        if (!isNaN(sets) && !isNaN(reps)) {
+          localStorage.setItem(key, JSON.stringify({ sets, reps }));
+          updateStrength(key, ex.sets, ex.reps, sets, reps);
+        }
       });
-
-      container.appendChild(card);
+      renderWorkout(day);
     }
 
-    // Show today only, but you can loop all days if needed
-    renderDay(dayName, workouts[dayName] || []);
+    function updateStrength(key, maxSets, maxReps, actualSets, actualReps) {
+      const percent = Math.min((actualSets * actualReps) / (maxSets * maxReps) * 100, 100);
+      document.getElementById(`bar_${key}`).style.width = `${percent}%`;
+      let rank = "";
+      if (percent === 100) rank = "Beast Mode 💪";
+      else if (percent >= 75) rank = "Almost There 🔥";
+      else if (percent >= 50) rank = "Getting Stronger 👊";
+      else rank = "Warmup Warrior 🧘‍♂️";
+      document.getElementById(`rank_${key}`).textContent = rank;
+    }
+
+    renderWorkout(currentDay);
   </script>
 </body>
 </html>
